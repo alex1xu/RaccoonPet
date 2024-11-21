@@ -1,0 +1,15 @@
+{
+    "runDuration": 20000,
+    "sitDuration": 30000,
+    "sleepDuration": 40000,
+    "durationVariability": 5000,
+    "probabilities": {
+        "run": 0.5,
+        "sit": 0.3,
+        "sleep": 0.2
+    },
+    "startY": "-40px",
+    "startX": "-90px",
+    "speed": 1,
+    "raccoonWidth": "100px"
+}

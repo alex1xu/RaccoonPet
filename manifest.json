@@ -1,0 +1,39 @@
+{
+    "name": "Alex Chrome Pet",
+    "author": "Alexander Xu",
+    "version": "1.0.0",
+    "description": "Raccoon!!",
+    "manifest_version": 3,
+    "permissions": [
+        "activeTab",
+        "storage"
+    ],
+    "host_permissions": [
+        "<all_urls>"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "<all_urls>"
+            ],
+            "js": [
+                "script.js"
+            ],
+            "css": []
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "sprites/*",
+                "config.json"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ]
+}
