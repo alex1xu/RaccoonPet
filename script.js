@@ -1,7 +1,7 @@
 const states = {
     RUN: "run",
     SIT: "sit",
-    SLEEP: "sleep"
+    SLEEP: "sleep",
 };
 
 const screenWidth = window.innerWidth;
@@ -10,6 +10,11 @@ let currentState = null;
 let stateTimeout = null;
 let direction = 1;
 let config = {};
+let movementTimeout = null;
+
+let trashCan = document.createElement("img");
+let pizza = null;
+let carryingPizza = false;
 
 chrome.runtime.sendMessage({ type: "getConfig" }, (response) => {
     if (response) {
@@ -24,6 +29,14 @@ raccoon.style.zIndex = "10000";
 raccoon.style.pointerEvents = "none";
 document.body.appendChild(raccoon);
 
+trashCan.style.position = "fixed";
+trashCan.style.bottom = "0px";
+trashCan.style.left = `${0}px`;
+trashCan.style.width = `40px`;
+trashCan.style.pointerEvents = "none";
+trashCan.src = chrome.runtime.getURL("sprites/trash.png");
+document.body.appendChild(trashCan);
+
 const sprites = {
     run: chrome.runtime.getURL("sprites/run.gif"),
     sit: chrome.runtime.getURL("sprites/sit2.gif"),
@@ -33,6 +46,8 @@ const sprites = {
         chrome.runtime.getURL("sprites/sleep2.gif")
     ]
 };
+
+const getDistance = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
 
 chrome.runtime.sendMessage({ type: "getRaccoonState" }, (state) => {
     if (state) {
@@ -57,6 +72,7 @@ const addVariability = () => {
 
 const changeState = (state) => {
     clearTimeout(stateTimeout);
+    if (movementTimeout) clearTimeout(movementTimeout)
     currentState = state;
     saveRaccoonState();
 
@@ -123,20 +139,87 @@ const moveRaccoon = () => {
     if (currentState === states.RUN) {
         let newPosition = parseInt(raccoon.style.left || 0) + (config.speed * direction);
 
-        if (newPosition + config.raccoonWidth <= 0 || newPosition >= screenWidth - config.raccoonWidth) {
+        if (newPosition + config.raccoonWidth <= 0 || newPosition >= screenWidth - config.raccoonWidth)
             direction = -direction;
-        }
 
-        if (direction < 0) {
-            raccoon.style.transform = "scaleX(-1)";
-        } else {
-            raccoon.style.transform = "scaleX(1)";
-        }
-
-        raccoon.style.left = newPosition + "px";
-        setTimeout(moveRaccoon, 10)
-        saveRaccoonState();
+        updateRaccoonDirection();
+        updateRaccoonPosition(newPosition);
+        movementTimeout = setTimeout(moveRaccoon, config.movementRefreshRate);
     }
+};
+
+const moveToTarget = (targetX, callback) => {
+    if (currentState === states.RUN) {
+        const raccoonX = parseInt(raccoon.style.left || 0);
+        const distance = targetX - raccoonX;
+
+        direction = distance > 0 ? 1 : -1;
+        updateRaccoonDirection();
+
+        if (Math.abs(distance) > config.speed * 3) {
+            updateRaccoonPosition(raccoonX + direction * config.speed * 2);
+            movementTimeout = setTimeout(() => moveToTarget(targetX, callback), config.movementRefreshRate);
+        } else {
+            callback();
+        }
+    }
+};
+
+const updateRaccoonPosition = (newPosition) => {
+    raccoon.style.left = `${newPosition}px`;
+    saveRaccoonState();
+};
+
+const updateRaccoonDirection = () => {
+    raccoon.style.transform = direction < 0 ? "scaleX(-1)" : "scaleX(1)";
+};
+
+const copyRaccoonPosition = (object) => {
+    if (object) {
+        object.style.left = raccoon.style.left;
+        setTimeout(() => copyRaccoonPosition(object), config.movementRefreshRate)
+    }
+}
+
+const moveToPizza = () => {
+    const pizzaX = parseInt(pizza.style.left);
+    moveToTarget(pizzaX, () => {
+        carryingPizza = true;
+        moveToTrashCan();
+        setTimeout(() => copyRaccoonPosition(pizza), config.movementRefreshRate)
+    });
+};
+
+const moveToTrashCan = () => {
+    const trashCanX = parseInt(trashCan.style.left);
+    moveToTarget(trashCanX, () => {
+        carryingPizza = false;
+        document.body.removeChild(pizza);
+        pizza = null;
+        chooseNextState();
+    });
+};
+
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !pizza) {
+        pizza = createPizza();
+        document.body.appendChild(pizza);
+
+        changeState(states.RUN);
+        moveToPizza();
+    }
+});
+
+const createPizza = () => {
+    const pizzaElement = document.createElement("img");
+    pizzaElement.style.position = "fixed";
+    pizzaElement.style.bottom = "0px";
+    pizzaElement.style.zIndex = "1000";
+    pizzaElement.style.pointerEvents = "none";
+    pizzaElement.style.left = `${screenWidth / 4 + Math.random() * screenWidth / 2}px`;
+    pizzaElement.style.width = `${config.pizzaSize || 30}px`;
+    pizzaElement.src = chrome.runtime.getURL("sprites/pizza.png");
+    return pizzaElement;
 };
 
 chooseNextState();

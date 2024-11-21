@@ -10,6 +10,7 @@
     },
     "startY": "-40px",
     "startX": "-90px",
-    "speed": 1,
-    "raccoonWidth": "100px"
+    "speed": 2,
+    "raccoonWidth": 100,
+    "movementRefreshRate": 10
 }

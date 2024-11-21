@@ -22,7 +22,9 @@
             "js": [
                 "script.js"
             ],
-            "css": []
+            "css": [
+                "index.css"
+            ]
         }
     ],
     "web_accessible_resources": [
